@@ -17,7 +17,7 @@ try:
     logger.info(f"Loaded Model from {MODEL_PATH}")
 except Exception as e:
     logger.exception(f"Unable to load model from {MODEL_PATH}: {e}")
-    raise
+    raise RuntimeError(f"Critical error: Model loading failed. Server cannot start without a valid model. Error: {e}")
 
 from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI(title="Stroke Risk API",version = "1.0")
@@ -93,6 +93,8 @@ def health():
 @app.get("/")
 def root():
     return {"message": "Stroke API is running. Use /docs for API documentation."}
+
+
 
 @app.get("/meta")
 def meta():

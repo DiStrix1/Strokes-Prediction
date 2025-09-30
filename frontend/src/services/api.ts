@@ -21,9 +21,59 @@ export interface StrokePredictionResponse {
 }
 
 class APIService {
+  async checkHealth(): Promise<{ status: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/health`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new APIServiceError(`Health check failed with status ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error instanceof APIServiceError) {
+        throw error;
+      }
+      throw new APIServiceError(
+        error instanceof Error ? error.message : 'Health check failed',
+        error
+      );
+    }
+  }
+
+  async getMetadata(): Promise<any> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/meta`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new APIServiceError(`Metadata request failed with status ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error instanceof APIServiceError) {
+        throw error;
+      }
+      throw new APIServiceError(
+        error instanceof Error ? error.message : 'Metadata request failed',
+        error
+      );
+    }
+  }
+
   async predictStroke(data: StrokePredictionRequest): Promise<StrokePredictionResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/predict`, {
+      const response = await fetch(`${API_BASE_URL}/predict`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { Loader2, Activity, Heart, User, Briefcase, Home, Gauge, Scale } from 'lucide-react';
+import { Loader2, Activity, Heart, User, Briefcase, Home, Gauge, Scale, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { strokePredictionSchema, type StrokePredictionFormData } from '@/lib/validations';
 import { apiService, type StrokePredictionResponse, type StrokePredictionRequest, APIError } from '@/services/api';
@@ -20,6 +20,7 @@ interface StrokePredictionFormProps {
 export const StrokePredictionForm: React.FC<StrokePredictionFormProps> = ({ onResult }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<StrokePredictionResponse | null>(null);
+  const [backendStatus, setBackendStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
   const { toast } = useToast();
 
   const {
@@ -40,6 +41,21 @@ export const StrokePredictionForm: React.FC<StrokePredictionFormProps> = ({ onRe
   const watchGlucose = watch('avg_glucose_level');
   const watchBMI = watch('bmi');
   const watchThreshold = watch('threshold');
+
+  // Check backend health on component mount
+  useEffect(() => {
+    const checkBackendHealth = async () => {
+      try {
+        await apiService.checkHealth();
+        setBackendStatus('connected');
+      } catch (error) {
+        setBackendStatus('disconnected');
+        console.error('Backend health check failed:', error);
+      }
+    };
+
+    checkBackendHealth();
+  }, []);
 
   const onSubmit = async (data: StrokePredictionFormData) => {
     setIsLoading(true);
@@ -106,6 +122,28 @@ export const StrokePredictionForm: React.FC<StrokePredictionFormProps> = ({ onRe
           <CardDescription className="text-muted-foreground">
             Complete this comprehensive assessment to evaluate stroke risk factors. All fields are required for accurate prediction.
           </CardDescription>
+          
+          {/* Backend Status Indicator */}
+          <div className="flex items-center gap-2 mt-2">
+            {backendStatus === 'checking' && (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Connecting to prediction service...</span>
+              </>
+            )}
+            {backendStatus === 'connected' && (
+              <>
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span className="text-sm text-green-600">Connected to prediction service</span>
+              </>
+            )}
+            {backendStatus === 'disconnected' && (
+              <>
+                <AlertCircle className="h-4 w-4 text-red-500" />
+                <span className="text-sm text-red-600">Unable to connect to prediction service</span>
+              </>
+            )}
+          </div>
         </CardHeader>
         
         <CardContent>
@@ -332,7 +370,7 @@ export const StrokePredictionForm: React.FC<StrokePredictionFormProps> = ({ onRe
             <div className="flex gap-4 pt-4">
               <Button 
                 type="submit" 
-                disabled={isLoading}
+                disabled={isLoading || backendStatus === 'disconnected'}
                 className="flex-1 medical-button-primary"
               >
                 {isLoading ? (
